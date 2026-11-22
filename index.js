@@ -7,21 +7,28 @@ const {
   AttachmentBuilder,
   MessageFlags,
 } = require("discord.js");
-const { spawn } = require("child_process");
+const { spawn, execFileSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const https = require("https");
 const http = require("http");
-const ffmpegPath = require("ffmpeg-static");
+const ffmpegStatic = require("ffmpeg-static");
 
-// ==========================================
-// ضع توكن البوت هنا مباشرة (أو في متغير البيئة TOKEN)
-// ==========================================
 const TOKEN = process.env.TOKEN || "YOUR_BOT_TOKEN_HERE";
 const WATERMARK_TEXT = "Deep Vault";
 
-// سيرفر HTTP بسيط للاستضافات التي تفحص المنفذ (مثل Railway)
+function resolveFfmpegBin() {
+  try {
+    const sysBin = execFileSync("which", ["ffmpeg"], { encoding: "utf8" }).trim();
+    if (sysBin) return sysBin;
+  } catch (_) {}
+  return ffmpegStatic;
+}
+
+const ffmpegPath = resolveFfmpegBin();
+console.log("Using FFmpeg binary:", ffmpegPath);
+
 const PORT = process.env.PORT || 3000;
 http
   .createServer((req, res) => {
@@ -189,9 +196,9 @@ function execFfmpegOnce(inputPath, outputPath, filterChain, isVideo) {
           "-preset",
           "ultrafast",
           "-crf",
-          "24",
+          "26",
           "-threads",
-          "2",
+          "1",
           "-max_muxing_queue_size",
           "1024",
           "-c:a",
@@ -211,7 +218,7 @@ function execFfmpegOnce(inputPath, outputPath, filterChain, isVideo) {
           "-frames:v",
           "1",
           "-q:v",
-          "2",
+          "3",
           outputPath,
         ];
 
@@ -228,7 +235,7 @@ function execFfmpegOnce(inputPath, outputPath, filterChain, isVideo) {
       if (code === 0 && fs.existsSync(outputPath)) {
         resolve();
       } else {
-        reject(new Error(stderr.slice(-600) || `FFmpeg exit code ${code}`));
+        reject(new Error(stderr.slice(-800) || `FFmpeg exit code ${code}`));
       }
     });
   });
@@ -243,6 +250,7 @@ async function runFfmpegWatermark(inputPath, outputPath, decorationText, isVideo
       isVideo
     );
   } catch (firstErr) {
+    console.error("FFmpeg attempt 1 failed:", firstErr.message);
     await execFfmpegOnce(
       inputPath,
       outputPath,
@@ -371,7 +379,7 @@ client.on("interactionCreate", async (interaction) => {
         content: "تم",
       });
     } catch (err) {
-      console.error("Error in /rights:", err);
+      console.error("Error in /rights:", err.message || err);
       await interaction.editReply({
         content:
           "فشلت معالجة الملف. تأكد أن الملف غير تالف وحجمه مناسب لموارد الاستضافة.",
