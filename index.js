@@ -15,6 +15,9 @@ const https = require("https");
 const http = require("http");
 const ffmpegStatic = require("ffmpeg-static");
 
+// ==========================================
+// ضع توكن البوت في متغير البيئة TOKEN (أو هنا مؤقتاً للتجربة المحلية)
+// ==========================================
 const TOKEN = process.env.TOKEN || "YOUR_BOT_TOKEN_HERE";
 const WATERMARK_TEXT = "Deep Vault";
 
@@ -29,6 +32,7 @@ function resolveFfmpegBin() {
 const ffmpegPath = resolveFfmpegBin();
 console.log("Using FFmpeg binary:", ffmpegPath);
 
+// سيرفر HTTP بسيط للاستضافات التي تفحص المنفذ (مثل Railway)
 const PORT = process.env.PORT || 3000;
 http
   .createServer((req, res) => {
@@ -134,6 +138,7 @@ function escapeDrawtext(str) {
 function findFontFile() {
   const candidates = [
     path.join(__dirname, "font.ttf"),
+    "/run/current-system/sw/share/X11/fonts/DejaVuSans-Bold.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
     "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
